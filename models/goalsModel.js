@@ -5,6 +5,20 @@
 
 const db = require('../db');
 
+/** Ensure User_Goals table exists (idempotent). Run once on first use. */
+async function ensureUserGoalsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS \`User_Goals\` (
+      user_id INT PRIMARY KEY,
+      muscle_ids VARCHAR(255) NULL COMMENT 'Comma-separated Muscle_Group ids',
+      intensity ENUM('slight', 'moderate', 'significant', 'maximum') DEFAULT 'moderate',
+      notes TEXT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_User_Goals_user FOREIGN KEY (user_id) REFERENCES \`User\`(id) ON DELETE CASCADE
+    )
+  `);
+}
+
 function parseNotes(notes) {
   if (!notes || typeof notes !== 'string') return { general: '', muscleGoals: {} };
   try {
@@ -26,6 +40,7 @@ function stringifyNotes(obj) {
  * Get goals for a user
  */
 const getGoalsByUserId = async (userId) => {
+  await ensureUserGoalsTable();
   const [rows] = await db.query(
     'SELECT muscle_ids, intensity, notes FROM User_Goals WHERE user_id = ?',
     [userId]
@@ -49,6 +64,7 @@ const getGoalsByUserId = async (userId) => {
  * Preserves existing muscleGoals in notes.
  */
 const saveGoals = async (userId, muscleIds, intensity, notes) => {
+  await ensureUserGoalsTable();
   const [existing] = await db.query(
     'SELECT notes FROM User_Goals WHERE user_id = ?',
     [userId]
@@ -81,6 +97,7 @@ const saveGoals = async (userId, muscleIds, intensity, notes) => {
  * Set or update goal text for one muscle. Creates User_Goals row if needed.
  */
 const setMuscleGoalText = async (userId, muscleId, goalText) => {
+  await ensureUserGoalsTable();
   const [rows] = await db.query(
     'SELECT muscle_ids, intensity, notes FROM User_Goals WHERE user_id = ?',
     [userId]
@@ -115,6 +132,7 @@ const setMuscleGoalText = async (userId, muscleId, goalText) => {
  * Toggle completed for one muscle goal.
  */
 const toggleMuscleGoalCompleted = async (userId, muscleId) => {
+  await ensureUserGoalsTable();
   const [rows] = await db.query(
     'SELECT notes FROM User_Goals WHERE user_id = ?',
     [userId]
@@ -136,6 +154,7 @@ const toggleMuscleGoalCompleted = async (userId, muscleId) => {
  * Remove one muscle from goals (from muscle_ids and from muscleGoals in notes).
  */
 const removeMuscleGoal = async (userId, muscleId) => {
+  await ensureUserGoalsTable();
   const [rows] = await db.query(
     'SELECT muscle_ids, notes FROM User_Goals WHERE user_id = ?',
     [userId]
