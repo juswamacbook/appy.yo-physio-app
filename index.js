@@ -7,18 +7,7 @@
 
 require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2');
 const app = express();
-
-const connection = mysql.createConnection(process.env.DATABASE_URL);
-
-connection.connect((err) => {
-  if (err) {
-    console.error("Database connection failed:", err);
-    return;
-  }
-  console.log("Connected to Railway MySQL!");
-});
 
 
 
@@ -34,10 +23,14 @@ const dashboardController = require('./controllers/dashboardController');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const sessionSecret = process.env.SESSION_SECRET || 'dev-session-secret-change-me';
+if (!process.env.SESSION_SECRET) {
+  console.warn('[SESSION] SESSION_SECRET is not set. Using a development fallback secret.');
+}
 
 //used for parsing application/json
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false
 }));
@@ -121,18 +114,11 @@ app.get('/', (req, res) => {
     res.redirect('/register');
 });
 
-<<<<<<< HEAD
 app.use('/api', (req, res) => {
   res.status(404).json({ error: `API route not found: ${req.originalUrl}` });
 });
 
-//listen to port 3000
-app.listen(3000, () => {
-    console.log('server running on port 3000');
-})
-=======
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
->>>>>>> b223851a563dab77718c663201c933b08aae249a

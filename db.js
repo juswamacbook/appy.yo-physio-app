@@ -1,21 +1,32 @@
 /**
- * database config file.
- * @author Luke Johnson
- * @author Carter Belnap
+ * Shared DB pool configuration.
  */
-
-
-// db.js
 require('dotenv').config();
 const mysql = require('mysql2');
 
-// Use DATABASE_URL from Railway
-const pool = mysql.createPool(process.env.DATABASE_URL);
+const hasDatabaseUrl = typeof process.env.DATABASE_URL === 'string' && process.env.DATABASE_URL.trim().length > 0;
 
-// Export promise pool
-module.exports = pool.promise();
+const poolConfig = hasDatabaseUrl
+  ? process.env.DATABASE_URL
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'physio',
+      port: Number(process.env.DB_PORT || 3306),
+      waitForConnections: true,
+      connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
+      queueLimit: 0
+    };
 
-console.log(`[DB] Connected via DATABASE_URL`);
+const pool = mysql.createPool(poolConfig);
 
-//export the pool to be used in other files.
+if (hasDatabaseUrl) {
+  console.log('[DB] Connected via DATABASE_URL');
+} else {
+  console.log(
+    `[DB] host=${poolConfig.host} user=${poolConfig.user} db=${poolConfig.database} port=${poolConfig.port}`
+  );
+}
+
 module.exports = pool.promise();
